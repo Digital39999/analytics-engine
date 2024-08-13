@@ -47,22 +47,25 @@ export default class AnalyticsEngine {
 		};
 	}
 
-	public async event(data: RequestData): Promise<boolean> {
+	public async event(type: string, data: RequestData): Promise<boolean> {
 		return !!(await this.parseAxiosRequest<string>(axios({
 			method: 'POST',
 			url: `${this.options.instanceUrl}/event`,
 			headers: this.getHeaders(),
 			data: typeof data === 'string' ? {
 				name: data,
-				createdAt: Date.now(),
-			} : data,
+				type,
+			} : {
+				...data,
+				type,
+			},
 		})));
 	}
 
-	public async getStatistics<T extends string>(lookback?: number): Promise<AnalyticsData<T>> {
+	public async getStatistics<T extends string>(type: string, lookback?: number): Promise<AnalyticsData<T>> {
 		return await this.parseAxiosRequest<AnalyticsData<T>>(axios({
 			method: 'GET',
-			url: `${this.options.instanceUrl}/analytics` + (lookback ? `?lookback=${lookback}` : ''),
+			url: `${this.options.instanceUrl}/analytics` + (type ? `?type=${type}` : '') + (lookback ? `&lookback=${lookback}` : ''),
 			headers: this.getHeaders(),
 		}));
 	}
@@ -76,12 +79,9 @@ export default class AnalyticsEngine {
 
 		return {
 			totalKeys: data.total_redis_keys,
-
 			cpuUsage: data.cpu_usage,
 			ramUsage: data.ram_usage,
-
 			ramUsageBytes: data.ram_usage_bytes,
-
 			systemUptime: data.system_uptime,
 			goRoutimeCount: data.go_routines,
 		};

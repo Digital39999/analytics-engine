@@ -16,6 +16,7 @@ type RequestData struct {
 	Name      string `json:"name" binding:"required"`
 	UserId    string `json:"userId" binding:"required"`
 	CreatedAt int64  `json:"createdAt" binding:"required"`
+	Type      string `json:"type" binding:"required"` // New field for analytics type
 }
 
 func analyticsHandler(c *gin.Context) {
@@ -31,12 +32,21 @@ func analyticsHandler(c *gin.Context) {
 		redisKey = "analyticsEngine"
 	}
 
+	analyticsType := c.Query("type") // Get analytics type from query parameters
+	if analyticsType == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "error": "Analytics type is required."})
+		return
+	}
+
+	// Generate the Redis key for the specified type
+	redisKeyWithType := redisKey + "-" + analyticsType
+
 	now := time.Now()
 	dailyCutoff := now.AddDate(0, 0, -lookback).UnixMilli()
 	weeklyCutoff := now.AddDate(0, 0, -(7 * lookback)).UnixMilli()
 	monthlyCutoff := now.AddDate(0, -lookback, 0).UnixMilli()
 
-	events, err := rdb.ZRangeByScore(ctx, redisKey, &redis.ZRangeBy{
+	events, err := rdb.ZRangeByScore(ctx, redisKeyWithType, &redis.ZRangeBy{
 		Min: strconv.FormatInt(monthlyCutoff, 10),
 		Max: "+inf",
 	}).Result()
@@ -110,13 +120,16 @@ func eventHandler(c *gin.Context) {
 		redisKey = "analyticsEngine"
 	}
 
+	// Generate the Redis key for the specified type
+	redisKeyWithType := redisKey + "-" + reqData.Type
+
 	value, err := json.Marshal(reqData)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "error": "Failed to marshal request data."})
 		return
 	}
 
-	err = rdb.ZAdd(ctx, redisKey, &redis.Z{
+	err = rdb.ZAdd(ctx, redisKeyWithType, &redis.Z{
 		Score:  float64(reqData.CreatedAt),
 		Member: value,
 	}).Err()
@@ -128,7 +141,7 @@ func eventHandler(c *gin.Context) {
 	maxExpiryInDays := os.Getenv("MAX_AGE")
 	maxExpiry, _ := strconv.Atoi(maxExpiryInDays)
 
-	err = rdb.Expire(ctx, redisKey, time.Hour*24*time.Duration(maxExpiry)).Err()
+	err = rdb.Expire(ctx, redisKeyWithType, time.Hour*24*time.Duration(maxExpiry)).Err()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "error": "Failed to set expiration in Redis: " + err.Error()})
 		return
