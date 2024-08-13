@@ -47,10 +47,6 @@ export default class AnalyticsEngine {
 		};
 	}
 
-	/**
-	 * Sends an event to the analytics service.
-	 * @param data Event data including name, userId, and createdAt in milliseconds.
-	 */
 	public async event(data: RequestData): Promise<boolean> {
 		return !!(await this.parseAxiosRequest<string>(axios({
 			method: 'POST',
@@ -63,10 +59,6 @@ export default class AnalyticsEngine {
 		})));
 	}
 
-	/**
-	 * Retrieves analytics statistics based on the lookback period.
-	 * @param lookback Optional lookback period in days, weeks, or months.
-	 */
 	public async getStatistics<T extends string>(lookback?: number): Promise<AnalyticsData<T>> {
 		return await this.parseAxiosRequest<AnalyticsData<T>>(axios({
 			method: 'GET',
@@ -75,9 +67,6 @@ export default class AnalyticsEngine {
 		}));
 	}
 
-	/**
-	 * Retrieves system and Redis statistics.
-	 */
 	public async getStats(): Promise<StatsData> {
 		const data = await this.parseAxiosRequest<RawStatsData>(axios({
 			method: 'GET',

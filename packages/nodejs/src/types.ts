@@ -44,7 +44,7 @@ export type RawStatsData = {
 }
 
 // YYYY-MM-DD
-export type AnalyticsData<T extends string> = {
+export type AnalyticsData<T extends string = string> = {
 	global: {
 		daily: Record<string, number>;
 		weekly: Record<string, number>;
