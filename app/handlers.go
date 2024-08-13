@@ -16,7 +16,7 @@ type RequestData struct {
 	Name      string `json:"name" binding:"required"`
 	UserId    string `json:"userId" binding:"required"`
 	CreatedAt int64  `json:"createdAt" binding:"required"`
-	Type      string `json:"type" binding:"required"` // New field for analytics type
+	Type      string `json:"type" binding:"required"`
 }
 
 func analyticsHandler(c *gin.Context) {
@@ -32,13 +32,12 @@ func analyticsHandler(c *gin.Context) {
 		redisKey = "analyticsEngine"
 	}
 
-	analyticsType := c.Query("type") // Get analytics type from query parameters
+	analyticsType := c.Query("type")
 	if analyticsType == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "error": "Analytics type is required."})
 		return
 	}
 
-	// Generate the Redis key for the specified type
 	redisKeyWithType := redisKey + "-" + analyticsType
 
 	now := time.Now()
@@ -81,19 +80,16 @@ func analyticsHandler(c *gin.Context) {
 		weekStart := createdAt.AddDate(0, 0, -int(createdAt.Weekday())).Format("2006-01-02")
 		monthKey := createdAt.Format("2006-01")
 
-		// Daily aggregation
 		if reqData.CreatedAt >= dailyCutoff {
 			usages[reqData.Name]["daily"][dateKey]++
 			global["daily"][dateKey]++
 		}
 
-		// Weekly aggregation: Group by week start date
 		if reqData.CreatedAt >= weeklyCutoff {
 			usages[reqData.Name]["weekly"][weekStart]++
 			global["weekly"][weekStart]++
 		}
 
-		// Monthly aggregation
 		if reqData.CreatedAt >= monthlyCutoff {
 			usages[reqData.Name]["monthly"][monthKey]++
 			global["monthly"][monthKey]++
@@ -120,7 +116,6 @@ func eventHandler(c *gin.Context) {
 		redisKey = "analyticsEngine"
 	}
 
-	// Generate the Redis key for the specified type
 	redisKeyWithType := redisKey + "-" + reqData.Type
 
 	value, err := json.Marshal(reqData)
