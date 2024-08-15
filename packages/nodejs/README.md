@@ -44,7 +44,7 @@ You can send event data to the analytics service using the `event` method. This 
 ```typescript
 const eventData = {
     name: 'commandA', // The name of the command/event
-    userId: 'user1', // The ID of the user triggering the event
+    uniqueId: 'user1', // The ID of the user triggering the event
     createdAt: Date.now(), // The timestamp in milliseconds
 };
 
@@ -80,14 +80,14 @@ The structure of the data sent when logging an event:
 ```typescript
 export type RequestData = {
     name: string; // The name of the event
-    userId: string; // The ID of the user triggering the event
+    uniqueId?: string; // The ID of the user triggering the event
     createdAt: number; // The timestamp of the event in milliseconds
 } | string;
 
 // Example of RequestData
 const eventData: RequestData = {
     name: 'commandA',
-    userId: 'user1',
+    uniqueId: 'user1',
     createdAt: Date.now(),
 };
 ```

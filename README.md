@@ -169,13 +169,13 @@ curl -X POST http://localhost:8080/event \
 -H "Authorization: your-api-key" \
 -d '{
   "name": "login",
-  "userId": "user123",
+  "uniqueId": "user123",
   "createdAt": 1632960000000 
 }'
 ```
 
 - **`name`**: The event name (e.g., `login`, `purchase`).
-- **`userId`**: A unique identifier for the user.
+- **`uniqueId`**: A unique identifier for the user.
 - **`createdAt`**: The timestamp of the event.
 
 ### Get Aggregated Analytics
@@ -221,7 +221,7 @@ async function recordEvent() {
       },
       body: JSON.stringify({
         name: 'login',
-        userId: 'user123',
+        useuniqueIdrId: 'user123',
         createdAt: Date.now()
       })
     }).then(res => res.json());
@@ -249,7 +249,7 @@ api_url = 'http://localhost:8080/event'
 def record_event():
     data = {
         'name': 'login',
-        'userId': 'user123',
+        'uniqueId': 'user123',
         'createdAt': int(time.time())
     }
     

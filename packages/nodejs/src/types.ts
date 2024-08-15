@@ -10,7 +10,7 @@ export type ResponseType<T> = {
 
 export type RequestData = {
     name: string;
-    userId: string;
+    uniqueId?: string;
     createdAt: number;
 } | string;
 
@@ -35,6 +35,11 @@ export type RawStatsData = {
     ram_usage_bytes: number;
     system_uptime: string;
     go_routines: number;
+}
+
+export type StatisticOptions = {
+    lookback?: number;
+    uniqueId?: string;
 }
 
 // YYYY-MM-DD

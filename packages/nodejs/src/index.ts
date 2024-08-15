@@ -1,4 +1,4 @@
-import { AnalyticsData, ConstructorOptions, RawStatsData, RequestData, ResponseType, StatsData } from './types';
+import { AnalyticsData, ConstructorOptions, RawStatsData, RequestData, ResponseType, StatisticOptions, StatsData } from './types';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 
 export * from './types';
@@ -62,10 +62,10 @@ export default class AnalyticsEngine {
 		})));
 	}
 
-	public async getStatistics<T extends string>(type: string, lookback?: number): Promise<AnalyticsData<T>> {
+	public async getStatistics<T extends string>(type: string, options?: StatisticOptions): Promise<AnalyticsData<T>> {
 		return await this.parseAxiosRequest<AnalyticsData<T>>(axios({
 			method: 'GET',
-			url: `${this.options.instanceUrl}/analytics` + (type ? `?type=${type}` : '') + (lookback ? `&lookback=${lookback}` : ''),
+			url: `${this.options.instanceUrl}/analytics` + (type ? `?type=${type}` : '') + (options?.uniqueId ? `&uniqueId=${options.uniqueId}` : '') + (options?.lookback ? `&lookback=${options.lookback}` : ''),
 			headers: this.getHeaders(),
 		}));
 	}

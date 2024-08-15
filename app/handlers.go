@@ -13,10 +13,10 @@ import (
 )
 
 type RequestData struct {
-	Name      string `json:"name" binding:"required"`
-	UserId    string `json:"userId" binding:"required"`
-	CreatedAt int64  `json:"createdAt" binding:"required"`
-	Type      string `json:"type" binding:"required"`
+	Name      string  `json:"name" binding:"required"`
+	CreatedAt int64   `json:"createdAt" binding:"required"`
+	UniqueId  *string `json:"uniqueId,omitempty"`
+	Type      string  `json:"type" binding:"required"`
 }
 
 func analyticsHandler(c *gin.Context) {
@@ -61,9 +61,15 @@ func analyticsHandler(c *gin.Context) {
 		"monthly": {},
 	}
 
+	filterUniqueId := c.Query("uniqueId")
+
 	for _, event := range events {
 		var reqData RequestData
 		if err := json.Unmarshal([]byte(event), &reqData); err != nil {
+			continue
+		}
+
+		if filterUniqueId != "" && (reqData.UniqueId == nil || *reqData.UniqueId != filterUniqueId) {
 			continue
 		}
 
