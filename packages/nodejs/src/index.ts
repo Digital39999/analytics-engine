@@ -54,6 +54,7 @@ export default class AnalyticsEngine {
 			headers: this.getHeaders(),
 			data: typeof data === 'string' ? {
 				name: data,
+				createdAt: Date.now(),
 				type,
 			} : {
 				...data,
