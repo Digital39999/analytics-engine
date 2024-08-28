@@ -1,4 +1,4 @@
-import { AnalyticsData, ConstructorOptions, RawStatsData, RequestData, ResponseType, StatisticOptions, StatsData } from './types';
+import { AnalyticsData, ConstructorOptions, FlushOptions, RawStatsData, RequestData, ResponseType, StatisticOptions, StatsData } from './types';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 
 export * from './types';
@@ -34,10 +34,24 @@ export default class AnalyticsEngine {
 	private async parseAxiosRequest<T>(response: Promise<AxiosResponse<ResponseType<T>>>): Promise<T> {
 		const data = await response.then((res) => res.data).catch((err: AxiosError<ResponseType<T>>) => err.response?.data);
 
-		if (!data || data.status !== 200) throw new Error('Request failed.');
+		if (!data) throw new Error('Request failed.');
 		else if ('error' in data) throw new Error(data.error);
+		else if (!data.data) throw new Error('Invalid response data.');
 
 		return data.data;
+	}
+
+	public qp<T extends Record<string, unknown>>(url: string, params?: T) {
+		if (!params) return url;
+
+		const query = new URLSearchParams();
+
+		for (const [key, value] of Object.entries(params)) {
+			if (value === undefined) continue;
+			query.append(key, String(value));
+		}
+
+		return url + '?' + query.toString();
 	}
 
 	private getHeaders(): Record<string, string> {
@@ -47,28 +61,32 @@ export default class AnalyticsEngine {
 		};
 	}
 
-	public async event(type: string, data: RequestData): Promise<boolean> {
+	public async event(data: RequestData): Promise<boolean> {
 		return !!(await this.parseAxiosRequest<string>(axios({
 			method: 'POST',
-			url: `${this.options.instanceUrl}/event`,
+			url: this.qp(`${this.options.instanceUrl}/event`),
 			headers: this.getHeaders(),
-			data: typeof data === 'string' ? {
-				name: data,
-				createdAt: Date.now(),
-				type,
-			} : {
+			data: {
 				...data,
-				type,
+				createdAt: data.createdAt || Date.now(),
 			},
 		})));
 	}
 
-	public async getStatistics<T extends string>(type: string, options?: StatisticOptions): Promise<AnalyticsData<T>> {
+	public async getStatistics<T extends string>(options?: StatisticOptions): Promise<AnalyticsData<T>> {
 		return await this.parseAxiosRequest<AnalyticsData<T>>(axios({
 			method: 'GET',
-			url: `${this.options.instanceUrl}/analytics` + (type ? `?type=${type}` : '') + (options?.uniqueId ? `&uniqueId=${options.uniqueId}` : '') + (options?.lookback ? `&lookback=${options.lookback}` : ''),
+			url: this.qp(`${this.options.instanceUrl}/analytics`, options),
 			headers: this.getHeaders(),
 		}));
+	}
+
+	public async flushStatistics(options?: FlushOptions): Promise<boolean> {
+		return !!(await this.parseAxiosRequest<string>(axios({
+			method: 'DELETE',
+			url: this.qp(`${this.options.instanceUrl}/analytics`, options),
+			headers: this.getHeaders(),
+		})));
 	}
 
 	public async getStats(): Promise<StatsData> {
@@ -84,6 +102,7 @@ export default class AnalyticsEngine {
 			ramUsage: data.ram_usage,
 			ramUsageBytes: data.ram_usage_bytes,
 			systemUptime: data.system_uptime,
+			systemUptimeSeconds: data.system_uptime_seconds,
 			goRoutimeCount: data.go_routines,
 		};
 	}

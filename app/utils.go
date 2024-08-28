@@ -78,3 +78,38 @@ func formatBytes(bytes uint64) string {
 		return fmt.Sprintf("%dB", bytes)
 	}
 }
+
+func getSystemUptime() int64 {
+	uptime := time.Since(startTime).Seconds()
+	return int64(uptime)
+}
+
+func formatSystemUptime(uptime int64) string {
+	months := uptime / 2592000
+	uptime %= 2592000
+	days := uptime / 86400
+	uptime %= 86400
+	hours := uptime / 3600
+	uptime %= 3600
+	minutes := uptime / 60
+	seconds := uptime % 60
+
+	result := ""
+	if months > 0 {
+		result += fmt.Sprintf("%dm ", months)
+	}
+	if days > 0 {
+		result += fmt.Sprintf("%dd ", days)
+	}
+	if hours > 0 {
+		result += fmt.Sprintf("%dh ", hours)
+	}
+	if minutes > 0 {
+		result += fmt.Sprintf("%dm ", minutes)
+	}
+	if seconds > 0 {
+		result += fmt.Sprintf("%ds", seconds)
+	}
+
+	return result
+}

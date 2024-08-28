@@ -16,7 +16,7 @@ type RequestData struct {
 	Name      string  `json:"name" binding:"required"`
 	CreatedAt int64   `json:"createdAt" binding:"required"`
 	UniqueId  *string `json:"uniqueId,omitempty"`
-	Type      string  `json:"type" binding:"required"`
+	Type      string  `json:"type,omitempty"`
 }
 
 func analyticsHandler(c *gin.Context) {
@@ -33,19 +33,16 @@ func analyticsHandler(c *gin.Context) {
 	}
 
 	analyticsType := c.Query("type")
-	if analyticsType == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"status": http.StatusBadRequest, "error": "Analytics type is required."})
-		return
+	if analyticsType != "" {
+		redisKey += "-" + analyticsType
 	}
-
-	redisKeyWithType := redisKey + "-" + analyticsType
 
 	now := time.Now()
 	dailyCutoff := now.AddDate(0, 0, -lookback).UnixMilli()
 	weeklyCutoff := now.AddDate(0, 0, -(7 * lookback)).UnixMilli()
 	monthlyCutoff := now.AddDate(0, -lookback, 0).UnixMilli()
 
-	events, err := rdb.ZRangeByScore(ctx, redisKeyWithType, &redis.ZRangeBy{
+	events, err := rdb.ZRangeByScore(ctx, redisKey, &redis.ZRangeBy{
 		Min: strconv.FormatInt(monthlyCutoff, 10),
 		Max: "+inf",
 	}).Result()
@@ -122,7 +119,9 @@ func eventHandler(c *gin.Context) {
 		redisKey = "analyticsEngine"
 	}
 
-	redisKeyWithType := redisKey + "-" + reqData.Type
+	if reqData.Type != "" {
+		redisKey += "-" + reqData.Type
+	}
 
 	value, err := json.Marshal(reqData)
 	if err != nil {
@@ -130,7 +129,7 @@ func eventHandler(c *gin.Context) {
 		return
 	}
 
-	err = rdb.ZAdd(ctx, redisKeyWithType, &redis.Z{
+	err = rdb.ZAdd(ctx, redisKey, &redis.Z{
 		Score:  float64(reqData.CreatedAt),
 		Member: value,
 	}).Err()
@@ -142,7 +141,7 @@ func eventHandler(c *gin.Context) {
 	maxExpiryInDays := os.Getenv("MAX_AGE")
 	maxExpiry, _ := strconv.Atoi(maxExpiryInDays)
 
-	err = rdb.Expire(ctx, redisKeyWithType, time.Hour*24*time.Duration(maxExpiry)).Err()
+	err = rdb.Expire(ctx, redisKey, time.Hour*24*time.Duration(maxExpiry)).Err()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "error": "Failed to set expiration in Redis: " + err.Error()})
 		return
@@ -151,17 +150,40 @@ func eventHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "data": "Event stored successfully!"})
 }
 
+func flushHandler(c *gin.Context) {
+	redisKey := os.Getenv("REDIS_KEY")
+	if redisKey == "" {
+		redisKey = "analyticsEngine"
+	}
+
+	analyticsType := c.Query("type")
+	if analyticsType != "" {
+		redisKey += "-" + analyticsType
+	}
+
+	err := rdb.Del(ctx, redisKey).Err()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": http.StatusInternalServerError, "error": "Failed to flush data from Redis: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "data": "Data flushed successfully!"})
+}
+
 func statsHandler(c *gin.Context) {
 	totalKeys, _ := rdb.DBSize(ctx).Result()
 	memoryBytes := getMemoryUsage()
 
+	uptime := getSystemUptime()
+
 	stats := gin.H{
-		"total_redis_keys": totalKeys,
-		"cpu_usage":        getCpuUsage(),
-		"ram_usage":        formatBytes(memoryBytes),
-		"ram_usage_bytes":  memoryBytes,
-		"system_uptime":    time.Since(startTime).String(),
-		"go_routines":      runtime.NumGoroutine(),
+		"total_redis_keys":      totalKeys,
+		"cpu_usage":             getCpuUsage(),
+		"ram_usage":             formatBytes(memoryBytes),
+		"ram_usage_bytes":       memoryBytes,
+		"system_uptime_seconds": uptime,
+		"system_uptime":         formatSystemUptime(uptime),
+		"go_routines":           runtime.NumGoroutine(),
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": http.StatusOK, "data": stats})

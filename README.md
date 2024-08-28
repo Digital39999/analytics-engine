@@ -40,7 +40,6 @@ By using Analytics Engine, you gain:
 - [Running with Docker](#running-with-docker)
 - [Running with Docker Compose](#running-with-docker-compose)
 - [API Usage](#api-usage)
-- [Packages](/packages/README.md)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -170,13 +169,15 @@ curl -X POST http://localhost:8080/event \
 -d '{
   "name": "login",
   "uniqueId": "user123",
-  "createdAt": 1632960000000 
+  "createdAt": 1632960000000,
+  "type": "auth"
 }'
 ```
 
 - **`name`**: The event name (e.g., `login`, `purchase`).
-- **`uniqueId`**: A unique identifier for the user.
+- **`uniqueId`**: A unique identifier for the user (optional).
 - **`createdAt`**: The timestamp of the event.
+- **`type`**: The type of event (e.g., `auth`, `purchase`).
 
 ### Get Aggregated Analytics
 
@@ -186,8 +187,10 @@ To retrieve aggregated analytics, send a GET request to `/analytics`:
 curl -X GET http://localhost:8080/analytics
 ```
 
-- **Optional Query Parameter**:
+- **Optional Query Parameters**:
   - `lookback`: Number of days to look back for daily counts (default is `7`).
+  - `type`: Filter analytics by a specific type.
+  - `uniqueId`: Filter analytics by a specific user ID.
 
 ### Get System Statistics
 
@@ -197,7 +200,18 @@ To retrieve system statistics, send a GET request to `/stats`:
 curl -X GET http://localhost:8080/stats
 ```
 
-- This will return information such as the total Redis keys, CPU and RAM usage, and system uptime.
+- This will return information such as the total Redis keys, CPU and RAM usage, system uptime, and more.
+
+### Flush Analytics Data
+
+To flush analytics data from Redis, send a DELETE request to `/analytics`:
+
+```bash
+curl -X DELETE http://localhost:8080/analytics
+```
+
+- **Optional Query Parameter**:
+  - `type`: Flush analytics data by a specific type.
 
 </details>
 
@@ -221,8 +235,9 @@ async function recordEvent() {
       },
       body: JSON.stringify({
         name: 'login',
-        useuniqueIdrId: 'user123',
+        uniqueId: 'user123',
         createdAt: Date.now()
+        type: 'auth'
       })
     }).then(res => res.json());
 
@@ -250,10 +265,16 @@ def record_event():
     data = {
         'name': 'login',
         'uniqueId': 'user123',
-        'createdAt': int(time.time())
+        'createdAt': int(time.time() * 1000)  # milliseconds
+        'type': 'auth'
     }
     
-    response = requests.post(api_url, json=data)
+    headers = {
+        'Authorization': 'your-api-key',
+        'Content-Type': 'application/json'
+    }
+    
+    response = requests.post(api_url, json=data, headers=headers)
     if response.status_code == 200:
         print('Event recorded successfully:', response.json())
     else:
@@ -270,4 +291,4 @@ If you'd like to contribute to this project, feel free to open a pull request or
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details. 

@@ -11,8 +11,9 @@ export type ResponseType<T> = {
 export type RequestData = {
     name: string;
     uniqueId?: string;
-    createdAt: number;
-} | string;
+    createdAt?: number;
+    type?: string;
+};
 
 export type ConstructorOptions = {
     authorization: string;
@@ -24,6 +25,7 @@ export type StatsData = {
     cpuUsage: number;
     ramUsage: string;
     ramUsageBytes: number;
+    systemUptimeSeconds: number;
     systemUptime: string;
     goRoutimeCount: number;
 }
@@ -33,6 +35,7 @@ export type RawStatsData = {
     cpu_usage: number;
     ram_usage: string;
     ram_usage_bytes: number;
+    system_uptime_seconds: number;
     system_uptime: string;
     go_routines: number;
 }
@@ -40,6 +43,11 @@ export type RawStatsData = {
 export type StatisticOptions = {
     lookback?: number;
     uniqueId?: string;
+    type?: string;
+}
+
+export type FlushOptions = {
+    type?: string;
 }
 
 // YYYY-MM-DD

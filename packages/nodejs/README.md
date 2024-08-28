@@ -1,6 +1,6 @@
 # Analytics Engine
 
-`analytics-engine-js` is a powerful Node.js package that allows you to send event data and retrieve analytical statistics using a Redis-backed service. With this package, you can log events, get detailed analytics per command, and monitor system performance.
+`analytics-engine-js` is a robust Node.js package designed to interact with a Redis-backed service for logging events, retrieving detailed analytics, and monitoring system performance. This package provides methods to send event data, fetch analytics for specific commands, and obtain system statistics.
 
 ## Table of Contents
 
@@ -9,14 +9,17 @@
   - [Creating an Instance](#creating-an-instance)
   - [Sending Events](#sending-events)
   - [Retrieving Analytics](#retrieving-analytics)
-  - [Getting Statistics](#getting-statistics)
-- [Data Examples](#data-examples)
+  - [Flushing Statistics](#flushing-statistics)
+  - [Getting System Statistics](#getting-system-statistics)
+- [Data Structures](#data-structures)
+  - [Request Data Example](#request-data-example)
+  - [Response Data Example](#response-data-example)
 - [Examples](#examples)
 - [License](#license)
 
 ## Installation
 
-You can install `analytics-engine-js` via npm:
+Install the package via npm:
 
 ```bash
 npm install analytics-engine-js
@@ -26,7 +29,7 @@ npm install analytics-engine-js
 
 ### Creating an Instance
 
-You can create an instance of the `AnalyticsEngine` by providing your authorization token and the instance URL of your analytics service.
+Instantiate the `AnalyticsEngine` by providing your authorization token and the instance URL of your analytics service.
 
 ```typescript
 import AnalyticsEngine from 'analytics-engine-js';
@@ -39,13 +42,14 @@ const analyticsClient = new AnalyticsEngine({
 
 ### Sending Events
 
-You can send event data to the analytics service using the `event` method. This method accepts an object containing the event details.
+Use the `event` method to send event data to the analytics service. The method accepts an object with event details.
 
 ```typescript
 const eventData = {
     name: 'commandA', // The name of the command/event
     uniqueId: 'user1', // The ID of the user triggering the event
     createdAt: Date.now(), // The timestamp in milliseconds
+    type: 'commands', // The type of event
 };
 
 await analyticsClient.event(eventData);
@@ -54,24 +58,38 @@ console.log('Event sent successfully!');
 
 ### Retrieving Analytics
 
-You can retrieve analytics data for specific commands using the `getStatistics` method. This method allows you to specify a lookback period.
+Retrieve analytics data for specific commands using the `getStatistics` method. You can specify options like lookback period and filters.
 
 ```typescript
-const lookbackDays = 7; // Specify the lookback period in days
-const analytics = await analyticsClient.getStatistics<typeof commands>(lookbackDays);
-console.log('Analytics Data:', analytics);
+const statistics = await analyticsClient.getStatistics({
+    lookback: 7, // Optional: Specify lookback period in days
+    uniqueId: 'user1', // Optional: Filter by unique user ID
+    type: 'commands', // Optional: Filter by event type
+});
+console.log('Analytics Data:', statistics);
 ```
 
-### Getting Statistics
+### Flushing Statistics
 
-To monitor the overall performance of the analytics service, you can use the `getStats` method, which returns system and Redis statistics.
+Use the `flushStatistics` method to delete analytics data based on specified criteria.
+
+```typescript
+const flushResult = await analyticsClient.flushStatistics({
+    type: 'commands', // Optional: Specify the type of data to flush
+});
+console.log('Flush successful:', flushResult);
+```
+
+### Getting System Statistics
+
+Monitor the overall performance of the analytics service by using the `getStats` method, which returns system and Redis statistics.
 
 ```typescript
 const stats = await analyticsClient.getStats();
 console.log('System Statistics:', stats);
 ```
 
-## Data Examples
+## Data Structures
 
 ### Request Data Example
 
@@ -81,14 +99,16 @@ The structure of the data sent when logging an event:
 export type RequestData = {
     name: string; // The name of the event
     uniqueId?: string; // The ID of the user triggering the event
-    createdAt: number; // The timestamp of the event in milliseconds
-} | string;
+    createdAt?: number; // The timestamp of the event in milliseconds
+    type?: string; // The type of event
+};
 
 // Example of RequestData
 const eventData: RequestData = {
     name: 'commandA',
     uniqueId: 'user1',
     createdAt: Date.now(),
+    type: 'commands',
 };
 ```
 
@@ -155,11 +175,15 @@ const response: ResponseType<AnalyticsData<string>> = {
 
 ### Fetching Analytics Data
 
-You can fetch analytics data to analyze event usage over a specified period:
+Here is an example of how to fetch and print analytics data:
 
 ```typescript
 type CommandList = 'commandA' | 'commandB';
-const analyticsData = await analyticsClient.getStatistics<CommandList>(7);
+const analyticsData = await analyticsClient.getStatistics<CommandList>({
+    lookback: 7,
+    uniqueId: 'user1',
+    type: 'commands,
+});
 console.log('Analytics Data:', JSON.stringify(analyticsData, null, 2));
 ```
 

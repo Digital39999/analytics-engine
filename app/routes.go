@@ -10,9 +10,10 @@ import (
 func initializeRoutes(router *gin.Engine) {
 	router.GET("/", infoHandler)
 	router.GET("/stats", statsHandler)
+	router.POST("/event", eventHandler)
 
 	router.GET("/analytics", analyticsHandler)
-	router.POST("/event", eventHandler)
+	router.DELETE("/analytics", flushHandler)
 
 	router.NoRoute(notFoundHandler)
 }
