@@ -24,11 +24,9 @@ export default class AnalyticsEngine {
 		const instanceUrl = new URL(url);
 		if (!instanceUrl.hostname) throw new Error('Invalid instance URL.');
 
-		const response = await axios<string>({ url, method: 'GET' }).catch((err: AxiosError<string>) => err.response);
-		if (!response || response.status !== 200) throw new Error('Invalid instance URL.');
-		else if ('error' in response && typeof response.error === 'string') throw new Error(response.error);
-
-		return;
+		const response = await axios.get(url).then((res) => res.data).catch((err: AxiosError) => err.response?.data);
+		if (response?.status !== 200) throw new Error('Invalid instance URL.');
+		else if ('error' in response) throw new Error(response.error);
 	}
 
 	private async parseAxiosRequest<T>(response: Promise<AxiosResponse<ResponseType<T>>>): Promise<T> {
@@ -36,7 +34,7 @@ export default class AnalyticsEngine {
 
 		if (!data) throw new Error('Request failed.');
 		else if ('error' in data) throw new Error(data.error);
-		else if (!data.data) throw new Error('Invalid response data.');
+		else if (data.status !== 200) throw new Error('Request failed.');
 
 		return data.data;
 	}
